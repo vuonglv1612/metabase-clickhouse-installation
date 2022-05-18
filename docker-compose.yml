@@ -1,0 +1,47 @@
+version: '3.5'
+
+services:
+  postgres:
+    image: postgres:14.3-alpine
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-metabase}
+      PGDATA: /data/postgres
+    volumes:
+      - postgres:/data/postgres
+    networks:
+      - postgres
+    restart: unless-stopped
+
+  metabase:
+    container_name: metabase
+    build:
+      context: .
+      dockerfile: Dockerfile-metabase-clickhouse
+    image: ${METABASE_IMAGE:-metabase-clickhouse}
+    env_file:
+      - .env
+    environment:
+      - MB_DB_TYPE=postgres
+      - MB_DB_HOST=postgres
+      - MB_DB_PORT=5432
+      - MB_DB_USER=${POSTGRES_USER:-postgres}
+      - MB_DB_PASS=${POSTGRES_PASSWORD:-changeme}
+      - MB_DB_DBNAME=${POSTGRES_DBNAME:-metabase}
+    ports:
+      - "${METABASE_PORT}:3000"
+    networks:
+      - postgres
+    restart: unless-stopped
+    depends_on:
+      - postgres
+
+networks:
+  postgres:
+
+
+volumes:
+  postgres:
